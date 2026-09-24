@@ -6,6 +6,7 @@
 # Items that are the same recipe (one ref from each copy/part is enough).
 merge:
   - ["7#1", "11#1"]
+  - ["50#1", "53#1"]
 
 # Items the title matcher merged but are different recipes.
 keep_apart: []
