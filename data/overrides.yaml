@@ -1,0 +1,32 @@
+# Manual fixes, applied by `python -m pipeline cluster` and `render`.
+# Pages use the labels from the scan filenames: "recetario _12.jpg" -> "12", "recetario _157_1.jpg" -> "157-1".
+# A page can hold several recipes: "157#2" is the second one on page 157; a bare "157" means "157#1".
+# cache/review.md lists the refs. After editing, run: python -m pipeline cluster, then consolidate, then render.
+
+# Items that are the same recipe (one ref from each copy/part is enough).
+merge:
+  - ["7#1", "11#1"]
+
+# Items the title matcher merged but are different recipes.
+keep_apart: []
+#  - ["30", "31"]
+
+# Start a new recipe at this item instead of treating it as a continuation.
+split:
+  - "11#1"
+
+
+# Whole pages ("3") or single items ("157#2") to ignore.
+drop: []
+
+# Force an item's kind: recipe | tip
+kind: {}
+#  "45": tip
+
+# Correct a consolidated recipe, keyed by its id (first ref, as in cache/clusters.json).
+# Render-only, no API call.
+fix: {}
+#  "12#1":
+#    title: Brazo gitano
+#    category: Postres y pasteles
+#    tags: [chocolate, festivo]

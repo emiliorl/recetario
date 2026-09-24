@@ -1,1 +1,8 @@
 *.jpg
+.env
+.venv/
+site/
+__pycache__/
+*.tmp
+# Plain-text recipes stay local; vault/ holds the encrypted copy that is committed.
+cache/
