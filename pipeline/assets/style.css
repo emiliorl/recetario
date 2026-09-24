@@ -126,17 +126,40 @@ button {
 
 .lede {
   max-width: 32rem;
-  margin: 20px auto 30px;
+  margin: 20px auto 0;
   color: var(--muted);
   font-style: italic;
 }
 
+/* Search, categories and tag filters stay pinned while scrolling the cards. */
+.finder {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 12px 16px 10px;
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+
+.finder > * {
+  max-width: 1120px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.finder-row {
+  display: flex;
+  gap: 10px;
+}
+
 .search {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 10px;
-  max-width: 520px;
-  margin: 0 auto;
+  min-width: 0;
   padding: 0 18px;
   background: var(--card);
   border: 1px solid var(--line);
@@ -152,12 +175,55 @@ button {
 .search input {
   flex: 1;
   min-width: 0;
-  padding: 14px 0;
+  padding: 11px 0;
   border: 0;
   background: none;
   color: var(--ink);
   font: inherit;
   outline: none;
+}
+
+.filter-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  font-size: 0.95rem;
+}
+
+.filter-toggle:hover,
+.filter-toggle[aria-expanded="true"] {
+  border-color: var(--accent);
+}
+
+.badge {
+  min-width: 1.4em;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--card);
+  font-size: 0.75rem;
+  line-height: 1.4em;
+  text-align: center;
+}
+
+.badge[hidden] {
+  display: none;
+}
+
+@media (max-width: 520px) {
+  .filter-toggle span:not(.badge) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
 }
 
 .home {
@@ -166,24 +232,17 @@ button {
   padding: 0 16px 64px;
 }
 
-.filters,
-.tag-filters {
+.filters {
   display: flex;
   gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
-  padding: 4px 2px;
-  margin-top: 28px;
-  justify-content: safe center;
+  padding: 2px;
+  margin-top: 10px;
 }
 
-.filters::-webkit-scrollbar,
-.tag-filters::-webkit-scrollbar {
+.filters::-webkit-scrollbar {
   display: none;
-}
-
-.tag-filters {
-  margin-top: 6px;
 }
 
 .chip,
@@ -193,35 +252,101 @@ button {
   background: var(--card);
   border-radius: 999px;
   white-space: nowrap;
-  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s, opacity 0.15s;
 }
 
 .chip {
-  padding: 8px 16px;
-  font-size: 0.95rem;
+  padding: 6px 14px;
+  font-size: 0.92rem;
 }
 
-.chip span {
+.chip span,
+.tag-chip span {
   color: var(--muted);
   font-size: 0.8em;
   margin-left: 2px;
 }
 
+.chip.zero {
+  opacity: 0.45;
+}
+
+.tag-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 14px 28px;
+  margin-top: 12px;
+  padding: 16px 18px;
+  max-height: 50vh;
+  overflow-y: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.tag-panel[hidden] {
+  display: none;
+}
+
+.tag-group h3 {
+  margin-bottom: 8px;
+  font: 600 0.72rem/1.3 var(--body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .tag-chip {
   padding: 4px 12px;
-  font-size: 0.85rem;
-  color: var(--muted);
+  font-size: 0.88rem;
   background: transparent;
 }
 
-.tag-chip::before {
-  content: "#";
-  opacity: 0.6;
+.tag-chip:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .chip:hover,
-.tag-chip:hover {
+.tag-chip:not(:disabled):hover {
   border-color: var(--accent);
+}
+
+.results-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.results-bar p {
+  margin: 0;
+}
+
+.clear {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-style: normal;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.clear[hidden] {
+  display: none;
 }
 
 .chip[aria-pressed="true"] {
@@ -230,7 +355,8 @@ button {
   color: var(--paper);
 }
 
-.chip[aria-pressed="true"] span {
+.chip[aria-pressed="true"] span,
+.tag-chip[aria-pressed="true"] span {
   color: inherit;
   opacity: 0.7;
 }
@@ -248,9 +374,13 @@ button {
   margin: 48px 0;
 }
 
+.empty p {
+  margin: 0 0 8px;
+}
+
 .chapter {
-  margin-top: 56px;
-  scroll-margin-top: 16px;
+  margin-top: 36px;
+  scroll-margin-top: 140px;
 }
 
 .chapter h2 {
@@ -345,25 +475,38 @@ button {
   opacity: 0.6;
 }
 
-.tip-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  columns: 2 280px;
-  column-gap: 32px;
+.card-match,
+.card-excerpt {
+  margin: 12px 20px 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
 }
 
-.tip-list a {
-  display: block;
-  padding: 10px 0;
-  border-bottom: 1px dashed var(--line);
-  text-decoration: none;
-  font-family: var(--display);
-  font-size: 1.1rem;
+.card-match {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-style: italic;
+  color: var(--sage);
 }
 
-.tip-list a:hover {
-  color: var(--accent);
+.card-excerpt {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  font-style: italic;
+}
+
+/* Tips: same index card, but sage instead of red so they read as a different kind of page. */
+.tip-card h3 {
+  border-bottom-color: color-mix(in srgb, var(--sage) 75%, transparent);
+}
+
+.tip-card .card-meta .icon {
+  color: var(--sage);
 }
 
 .site-footer {
@@ -767,13 +910,209 @@ button {
 
 /* ---------- Tips ---------- */
 
-.prose {
+.tip-intro {
+  max-width: 680px;
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 1.12rem;
+  font-style: italic;
+}
+
+.tip-intro p {
+  margin: 0 0 10px;
+}
+
+.tip-intro strong {
+  color: var(--ink);
+}
+
+.tip .facts {
+  margin-top: 22px;
+}
+
+.tip-body {
+  margin-top: 36px;
+}
+
+@media (min-width: 860px) {
+  .tip-body {
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  }
+
+  .toc {
+    position: sticky;
+    top: 20px;
+  }
+}
+
+.toc h2 {
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+
+.toc ol {
+  list-style: none;
+  counter-reset: toc;
+  margin: 0;
+  padding: 0;
+}
+
+.toc li {
+  counter-increment: toc;
+}
+
+.toc li + li {
+  border-top: 1px dashed var(--line);
+}
+
+.toc a {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  padding: 8px 0;
+  text-decoration: none;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.toc a::before {
+  content: counter(toc, decimal-leading-zero);
+  font-family: var(--display);
+  font-style: italic;
+  color: var(--accent);
+}
+
+.toc a:hover {
+  color: var(--accent);
+}
+
+.tip-sections {
   max-width: 760px;
-  margin-top: 28px;
+}
+
+.tip-sections.solo {
+  margin-top: 36px;
+}
+
+.tip-section {
+  scroll-margin-top: 20px;
+}
+
+.tip-section + .tip-section {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--line);
+}
+
+.tip-section h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: clamp(1.4rem, 4vw, 1.7rem);
+  margin-bottom: 14px;
 }
 
 .prose > :first-child {
   margin-top: 0;
+}
+
+.prose > :last-child {
+  margin-bottom: 0;
+}
+
+.prose p {
+  margin: 0 0 12px;
+}
+
+/* Lists become short, scannable entries: numbered like recipe steps, or with an accent bullet. */
+.prose ol,
+.prose ul {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.prose > ol {
+  counter-reset: item;
+}
+
+.prose > ol > li {
+  counter-increment: item;
+  position: relative;
+  padding: 12px 0 12px 2.4rem;
+  border-bottom: 1px dashed var(--line);
+}
+
+.prose > ol > li::before {
+  content: counter(item);
+  position: absolute;
+  left: 0;
+  top: 10px;
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 1.6rem;
+  line-height: 1.1;
+  color: var(--accent);
+}
+
+.prose > ul > li {
+  position: relative;
+  padding: 8px 0 8px 1.4rem;
+}
+
+.prose > ul > li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 1.05em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.8;
+}
+
+.prose li > p {
+  margin: 0;
+}
+
+.prose li ul,
+.prose li ol {
+  margin: 6px 0 0;
+  padding-left: 0;
+  color: var(--muted);
+  font-size: 0.97rem;
+}
+
+.prose li li {
+  position: relative;
+  padding: 3px 0 3px 1.1rem;
+}
+
+.prose li li::before {
+  content: "–";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+.prose li > strong:first-child,
+.prose li > p > strong:first-child {
+  font-family: var(--display);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.prose blockquote {
+  margin: 16px 0;
+  padding: 14px 18px;
+  background: var(--note);
+  color: var(--note-ink);
+  border-radius: 4px;
+  transform: rotate(-0.4deg);
+}
+
+.prose blockquote p:last-child {
+  margin: 0;
 }
 
 .prose table {
@@ -808,6 +1147,7 @@ button {
   .topbar,
   .toolbar,
   .hint,
+  .toc,
   .pager {
     display: none !important;
   }

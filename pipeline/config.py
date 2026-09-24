@@ -54,3 +54,18 @@ TAGS = [
     "pollo",
     "pescado y mariscos",
 ]
+
+# Render-only cleanup of tags the model wrote in other words (older runs used a looser list).
+TAG_ALIASES = {
+    "al horno": "horneado",
+    "fiestas": "festivo",
+    "pescados y mariscos": "pescado y mariscos",
+}
+
+# How the home page groups tags in the filter panel. Tags not listed go under "Otras".
+TAG_GROUPS = {
+    "Ocasión": ["rápido", "fácil", "económico", "desayuno", "festivo", "congelable"],
+    "Sabor": ["dulce", "salado", "chocolate", "frutas"],
+    "Técnica": ["horneado", "sin horno", "frito", "guiso", "baño maría", "levadura"],
+    "Ingrediente": ["vegetariano", "carne", "pollo", "pescado y mariscos", "pasta"],
+}

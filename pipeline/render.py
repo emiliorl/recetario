@@ -3,6 +3,7 @@
 No API calls and no scans needed, so GitHub Actions runs this step to publish.
 """
 
+import hashlib
 import json
 import re
 import shutil
@@ -13,7 +14,7 @@ import markdown
 
 from . import crypto
 from .cluster import load_overrides, normalize, ref
-from .config import CATEGORIES, CLUSTERS_FILE, SITE_DIR
+from .config import CATEGORIES, CLUSTERS_FILE, SITE_DIR, TAG_ALIASES, TAG_GROUPS
 from .consolidate import cache_file
 from .store import read_json
 
@@ -33,7 +34,16 @@ ICONS = {
     "search": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
     "sun": '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
     "back": '<path d="m15 18-6-6 6-6"/>',
+    "book": '<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>',
+    "list": '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+    "sliders": '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
 }
+
+
+def _asset(root: str, name: str) -> str:
+    """URL with a content hash, so browsers pick up a new style.css/app.js right after a deploy."""
+    digest = hashlib.sha256((ASSETS_DIR / name).read_bytes()).hexdigest()[:10]
+    return f"{root}assets/{name}?v={digest}"
 
 
 def icon(name: str) -> str:
@@ -79,6 +89,28 @@ def _step_html(step: str) -> str:
     return f"<strong>{match.group(1)}:</strong> {match.group(2)}" if match else text
 
 
+def _plain(md: str) -> str:
+    """Markdown -> one line of plain text, for excerpts, word counts and search."""
+    return _one_line(re.sub(r"[*_`#>|]", " ", md))
+
+
+def _markdown(md: str) -> str:
+    # Python-Markdown nests lists only at 4-space indents; the notebook text uses 2 or 3.
+    md = re.sub(r"^( +)(?=(?:[*+-]|\d+\.)\s)", lambda m: m.group(1) * 2, md, flags=re.M)
+    return markdown.markdown(md, extensions=["tables"])
+
+
+def _tip_parts(tip: dict) -> tuple[str, list[tuple[str, str]]]:
+    """Split a tip into its intro and (heading, markdown) sections at each '###' heading."""
+    chunks = re.split(r"^#{1,4}\s+(.+?)\s*#*\s*$", "\n\n".join(tip["body"]), flags=re.M)
+    sections = [(_plain(h), md.strip()) for h, md in zip(chunks[1::2], chunks[2::2])]
+    return chunks[0].strip(), sections
+
+
+def _reading_minutes(tip: dict) -> int:
+    return max(1, round(len(_plain(" ".join(tip["body"])).split()) / 180))
+
+
 def _page(title: str, body: str, root: str, body_class: str = "") -> str:
     """A password screen; the real page travels encrypted and lock.js decrypts it in the browser.
 
@@ -98,7 +130,7 @@ def _page(title: str, body: str, root: str, body_class: str = "") -> str:
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="{FONTS}">
-<link rel="stylesheet" href="{root}assets/style.css">
+<link rel="stylesheet" href="{_asset(root, 'style.css')}">
 </head>
 <body class="locked">
 <main class="lock-screen">
@@ -114,7 +146,7 @@ def _page(title: str, body: str, root: str, body_class: str = "") -> str:
   <noscript><p class="lock-text">Activa JavaScript para abrir el recetario.</p></noscript>
 </main>
 <script id="payload" type="application/octet-stream" data-salt="{crypto.SITE_SALT.decode()}" data-iterations="{crypto.PBKDF2_ITERATIONS}">{payload}</script>
-<script src="{root}assets/lock.js" data-app="{root}assets/app.js"></script>
+<script src="{_asset(root, 'lock.js')}" data-app="{_asset(root, 'app.js')}"></script>
 </body>
 </html>
 """
@@ -145,7 +177,7 @@ def _tags(tags: list[str]) -> str:
     return '<ul class="tags">' + "".join(f"<li>{escape(t)}</li>" for t in tags) + "</ul>"
 
 
-def _pager(prev, nxt, root: str) -> str:
+def _pager(prev, nxt, root: str, folder: str = "recetas") -> str:
     if not (prev or nxt):
         return ""
 
@@ -153,7 +185,7 @@ def _pager(prev, nxt, root: str) -> str:
         if not entry:
             return "<span></span>"
         title, slug = entry
-        return f'<a class="{cls}" href="{root}recetas/{slug}/"><small>{label}</small>{escape(title)}</a>'
+        return f'<a class="{cls}" href="{root}{folder}/{slug}/"><small>{label}</small>{escape(title)}</a>'
 
     return f'<nav class="pager">{link(prev, "prev", "Anterior")}{link(nxt, "next", "Siguiente")}</nav>'
 
@@ -184,7 +216,7 @@ def recipe_html(recipe: dict, pages: list[str], slug: str, prev_next: tuple) -> 
     body = f"""{_topbar(root)}
 <main class="recipe" data-recipe="{slug}">
   <header class="recipe-head">
-    <a class="eyebrow" href="{root}#{CATEGORY_SLUGS[category]}">{escape(category)}</a>
+    <a class="eyebrow" href="{root}?c={CATEGORY_SLUGS[category]}">{escape(category)}</a>
     <h1>{escape(recipe["title"])}</h1>
     {_facts(recipe)}
     {_tags(recipe["tags"])}
@@ -212,17 +244,41 @@ def recipe_html(recipe: dict, pages: list[str], slug: str, prev_next: tuple) -> 
     return _page(f"{recipe['title']} · Recetario", body, root)
 
 
-def tip_html(tip: dict, pages: list[str]) -> str:
+def tip_html(tip: dict, pages: list[str], prev_next: tuple) -> str:
+    """Laid out like a recipe: facts under the title, a sticky contents card, numbered sections."""
     root = "../../"
-    content = markdown.markdown("\n\n".join(tip["body"]), extensions=["tables"])
+    intro, sections = _tip_parts(tip)
+    facts = [("book", "Lectura", f"{_reading_minutes(tip)} min")]
+    if len(sections) > 1:
+        facts.append(("list", "Temas", str(len(sections))))
+    facts_html = "".join(
+        f'<div class="fact">{icon(key)}<div><dt>{label}</dt><dd>{value}</dd></div></div>' for key, label, value in facts
+    )
+    lede = f'<div class="tip-intro">{_markdown(intro)}</div>' if intro else ""
+
+    blocks = "".join(
+        f'<section class="tip-section" id="tema-{n}"><h2><span class="chapter-no">{n:02d}</span>{escape(heading)}</h2>'
+        f'<div class="prose">{_markdown(md)}</div></section>'
+        for n, (heading, md) in enumerate(sections, 1)
+    )
+    if len(sections) > 1:
+        links = "".join(f'<li><a href="#tema-{n}">{escape(h)}</a></li>' for n, (h, _) in enumerate(sections, 1))
+        toc = f'<nav class="toc card" aria-label="En esta página"><h2>En esta página</h2><ol>{links}</ol></nav>'
+        content = f'<div class="recipe-body tip-body">{toc}<div class="tip-sections">{blocks}</div></div>'
+    else:
+        content = f'<div class="tip-sections solo">{blocks}</div>'
+
     body = f"""{_topbar(root)}
 <main class="tip">
   <header class="recipe-head">
-    <a class="eyebrow" href="{root}#consejos">Consejos de cocina</a>
+    <a class="eyebrow" href="{root}?c=consejos">Consejos de cocina</a>
     <h1>{escape(tip["title"])}</h1>
+    {lede}
+    <dl class="facts">{facts_html}</dl>
   </header>
-  <article class="prose card">{content}</article>
+  {content}
   <p class="provenance">{_pages_label(pages)}</p>
+  {_pager(*prev_next, root, "consejos")}
 </main>"""
     return _page(f"{tip['title']} · Recetario", body, root)
 
@@ -233,12 +289,57 @@ def _card(recipe: dict, slug: str) -> str:
     ingredients = (i for g in recipe["ingredient_groups"] for i in g["items"])
     haystack = normalize(" ".join([recipe["title"], recipe["category"], *recipe["tags"], *ingredients]))
     tags = "".join(f"<li>{escape(t)}</li>" for t in recipe["tags"][:3])
+    lines = (_one_line(i) for g in recipe["ingredient_groups"] for i in g["items"])
     return (
         f'<li class="recipe-card" data-category="{CATEGORY_SLUGS[recipe["category"]]}" '
-        f'data-tags="{escape("|".join(recipe["tags"]))}" data-search="{escape(haystack)}">'
+        f'data-tags="{escape("|".join(recipe["tags"]))}" data-search="{escape(haystack)}" '
+        f'data-title="{escape(normalize(recipe["title"]))}" data-ingredients="{escape("|".join(lines))}">'
         f'<a href="recetas/{slug}/"><h3>{escape(recipe["title"])}</h3>'
+        f'<p class="card-match" hidden></p>'
         f'<div class="card-foot">{meta}<ul class="card-tags">{tags}</ul></div></a></li>'
     )
+
+
+def _tip_card(tip: dict, slug: str) -> str:
+    intro, sections = _tip_parts(tip)
+    if intro:
+        text = _plain(intro)
+        excerpt = (re.match(r"(.+?[.!?])(\s|$)", text) or re.match(r"(.+)", text)).group(1)
+    else:
+        excerpt = " · ".join(h for h, _ in sections)
+    topics = f" · {len(sections)} temas" if len(sections) > 1 else ""
+    haystack = normalize(" ".join([tip["title"], _plain(" ".join(tip["body"]))]))
+    return (
+        f'<li class="recipe-card tip-card" data-category="consejos" data-tags="" data-search="{escape(haystack)}">'
+        f'<a href="consejos/{slug}/"><h3>{escape(tip["title"])}</h3>'
+        f'<p class="card-excerpt">{escape(excerpt)}</p>'
+        f'<div class="card-foot"><span class="card-meta">{icon("book")}{_reading_minutes(tip)} min de lectura{topics}</span>'
+        f"</div></a></li>"
+    )
+
+
+def _tag_panel(recipes: list[tuple[dict, str]]) -> str:
+    counts: dict[str, int] = {}
+    for recipe, _ in recipes:
+        for tag in recipe["tags"]:
+            counts[tag] = counts.get(tag, 0) + 1
+    used = {t for t, n in counts.items() if n > 1}  # one-off tags stay on the recipe but don't earn a filter
+    grouped = {name: [t for t in tags if t in used] for name, tags in TAG_GROUPS.items()}
+    listed = {t for tags in grouped.values() for t in tags}
+    grouped["Otras"] = sorted(used - listed, key=normalize)
+
+    groups = "".join(
+        f'<div class="tag-group"><h3>{escape(name)}</h3><div class="tag-list">'
+        + "".join(
+            f'<button class="tag-chip" type="button" aria-pressed="false" data-tag="{escape(t)}">'
+            f"{escape(t)} <span>{counts[t]}</span></button>"
+            for t in tags
+        )
+        + "</div></div>"
+        for name, tags in grouped.items()
+        if tags
+    )
+    return f'<div class="tag-panel" id="tag-panel" hidden>{groups}</div>'
 
 
 def index_html(recipes: list[tuple[dict, str]], tips: list[tuple[dict, str]]) -> str:
@@ -247,15 +348,17 @@ def index_html(recipes: list[tuple[dict, str]], tips: list[tuple[dict, str]]) ->
         by_category.setdefault(recipe["category"], []).append((recipe, slug))
     ordered = [name for name in CATEGORIES.values() if name in by_category]
 
-    chips = '<button class="chip" aria-pressed="true" data-filter="">Todas</button>' + "".join(
-        f'<button class="chip" aria-pressed="false" data-filter="{CATEGORY_SLUGS[n]}">{escape(n)}'
-        f" <span>{len(by_category[n])}</span></button>"
-        for n in ordered
+    def chip(value: str, label: str, count: int) -> str:
+        return (
+            f'<button class="chip" type="button" aria-pressed="{str(not value).lower()}" data-filter="{value}">'
+            f"{escape(label)} <span>{count}</span></button>"
+        )
+
+    chips = chip("", "Todas", len(recipes)) + "".join(
+        chip(CATEGORY_SLUGS[n], n, len(by_category[n])) for n in ordered
     )
-    all_tags = sorted({t for recipe, _ in recipes for t in recipe["tags"]}, key=normalize)
-    tag_chips = "".join(
-        f'<button class="tag-chip" aria-pressed="false" data-tag="{escape(t)}">{escape(t)}</button>' for t in all_tags
-    )
+    if tips:
+        chips += chip("consejos", "Consejos", len(tips))
 
     sections = []
     for number, name in enumerate(ordered, 1):
@@ -266,22 +369,29 @@ def index_html(recipes: list[tuple[dict, str]], tips: list[tuple[dict, str]]) ->
             f'<ul class="card-grid">{cards}</ul></section>'
         )
     if tips:
-        links = "".join(f'<li><a href="consejos/{slug}/">{escape(tip["title"])}</a></li>' for tip, slug in tips)
+        cards = "".join(_tip_card(t, s) for t, s in tips)
         sections.append(
             '<section class="chapter tips-chapter" id="consejos"><h2><span class="chapter-no">✦</span>'
-            f'Consejos de cocina</h2><ul class="tip-list">{links}</ul></section>'
+            f'Consejos de cocina</h2><ul class="card-grid">{cards}</ul></section>'
         )
 
+    tips_note = f" y {len(tips)} consejos" if tips else ""
     body = f"""<header class="masthead">
   <p class="kicker">Cuaderno de la familia</p>
   <h1>Recetario</h1>
-  <p class="lede">{len(recipes)} recetas del cuaderno de clases de cocina, pasadas en limpio para tenerlas siempre a mano.</p>
-  <label class="search">{icon("search")}<input type="search" placeholder="Buscar receta o ingrediente…" aria-label="Buscar receta o ingrediente"></label>
+  <p class="lede">{len(recipes)} recetas{tips_note} del cuaderno de clases de cocina, pasadas en limpio para tenerlas siempre a mano.</p>
 </header>
-<main class="home">
+<div class="finder">
+  <div class="finder-row">
+    <label class="search">{icon("search")}<input type="search" placeholder="Receta o ingrediente…" aria-label="Buscar receta o ingrediente" enterkeyhint="search"></label>
+    <button class="filter-toggle" type="button" aria-expanded="false" aria-controls="tag-panel">{icon("sliders")}<span>Filtros</span><span class="badge" hidden></span></button>
+  </div>
   <nav class="filters" aria-label="Categorías">{chips}</nav>
-  <div class="tag-filters" role="group" aria-label="Etiquetas">{tag_chips}</div>
-  <p class="empty" hidden>No hay recetas que coincidan.</p>
+  {_tag_panel(recipes)}
+</div>
+<main class="home">
+  <div class="results-bar"><p class="count" aria-live="polite"></p><button class="clear" type="button" hidden>Limpiar filtros</button></div>
+  <div class="empty" hidden><p>No hay nada que coincida.</p><button class="clear" type="button">Limpiar filtros</button></div>
   {"".join(sections)}
 </main>
 <footer class="site-footer">Pasado en limpio del cuaderno original.
@@ -317,6 +427,8 @@ def run() -> None:
             continue
         data = read_json(path)
         item = _apply_fix(data[data["kind"]], fixes.get(cluster["id"], {}))
+        if "tags" in item:
+            item["tags"] = list(dict.fromkeys(TAG_ALIASES.get(t, t) for t in item["tags"]))
         entry = (item, crypto.opaque_id(_unique(slugify(item["title"]), used)), cluster["pages"])
         (recipes if data["kind"] == "recipe" else tips).append(entry)
 
@@ -335,8 +447,9 @@ def run() -> None:
     for i, (recipe, slug, pages) in enumerate(recipes):
         pager = (neighbour(i - 1, recipe["category"]), neighbour(i + 1, recipe["category"]))
         _write(SITE_DIR / "recetas" / slug / "index.html", recipe_html(recipe, pages, slug, pager))
-    for tip, slug, pages in tips:
-        _write(SITE_DIR / "consejos" / slug / "index.html", tip_html(tip, pages))
+    for i, (tip, slug, pages) in enumerate(tips):
+        pager = tuple((tips[j][0]["title"], tips[j][1]) if 0 <= j < len(tips) else None for j in (i - 1, i + 1))
+        _write(SITE_DIR / "consejos" / slug / "index.html", tip_html(tip, pages, pager))
     _write(SITE_DIR / "index.html", index_html([(r, s) for r, s, _ in recipes], [(t, s) for t, s, _ in tips]))
     _write(SITE_DIR / ".nojekyll", "")
     _write(SITE_DIR / "robots.txt", "User-agent: *\nDisallow: /\n")
