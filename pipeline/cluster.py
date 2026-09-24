@@ -52,7 +52,7 @@ def _chain(pages: list[dict], overrides: dict, log: list[str]) -> list[dict]:
             previous_continues = False
             continue
         if not data["items"]:
-            log.append(f"- página {label}: sin recetas ({data['skip_reason'] or 'vacía'})")
+            log.append(f"- página {label}: sin recetas ({data.get('skip_reason', '') or 'vacía'})")
             continue
         for index, item in enumerate(data["items"]):
             item_ref = f"{label}#{index + 1}"
@@ -62,7 +62,7 @@ def _chain(pages: list[dict], overrides: dict, log: list[str]) -> list[dict]:
             title = normalize(item["normalized_title"] or item["title"])
             kind = kinds.get(item_ref, item["kind"])
             last = chains[-1] if chains else None
-            continues = index == 0 and (item["is_continuation"] or (previous_continues and not title))
+            continues = index == 0 and (item.get("is_continuation", False) or (previous_continues and not title))
             same_title = last is not None and (not title or title == last["title"])
             if last and continues and same_title and item_ref not in split:
                 last["refs"].append(item_ref)
@@ -70,7 +70,7 @@ def _chain(pages: list[dict], overrides: dict, log: list[str]) -> list[dict]:
             if continues and item_ref not in split:
                 log.append(f"- {item_ref}: continuación sin receta previa; queda como fragmento")
             chains.append({"title": title, "display": item["title"], "kind": kind, "refs": [item_ref]})
-        previous_continues = data["continues_next"]
+        previous_continues = data.get("continues_next", False)
     return chains
 
 

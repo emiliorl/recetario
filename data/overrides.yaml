@@ -8,6 +8,9 @@ merge:
   - ["7#1", "11#1"]
   - ["50#1", "53#1"]
   - ["69#1", "105#1"]
+  - ["85#1", "116#3"]
+  - ["104#2", "123#1"]
+  - ["111#1", "113#1"]
 
 # Items the title matcher merged but are different recipes.
 keep_apart: []
