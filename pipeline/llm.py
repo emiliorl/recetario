@@ -30,7 +30,7 @@ partes de una receta partida en varias páginas, o versiones duplicadas (el apun
 Une todo en una sola receta coherente, en español:
 - Conserva el orden lógico: si hay fragmentos, junta ingredientes y pasos en el orden correcto.
 - Si hay versiones duplicadas, usa la redacción más clara como base, pero no pierdas ningún dato práctico (cantidades, temperaturas, tiempos).
-- Todas las notas a mano y consejos de la maestra van en teacher_notes; no descartes ninguna.
+- Todas las notas a mano y consejos de la maestra van en teacher_notes; no descartes ninguna. No incluyas créditos del curso (cátedra, instituto, nombre de la profesora).
 - No inventes cantidades, pasos ni tiempos que no estén en las páginas. Deja vacío lo que no aparezca.
 - Corrige solo errores evidentes de transcripción (letras cambiadas), no el contenido.
 - Elige UNA categoría: {categories}.

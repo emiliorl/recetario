@@ -14,7 +14,15 @@ import markdown
 
 from . import crypto
 from .cluster import load_overrides, normalize, ref
-from .config import CATEGORIES, CLUSTERS_FILE, SITE_DIR, TAG_ALIASES, TAG_GROUPS
+from .config import (
+    CATEGORIES,
+    CLUSTERS_FILE,
+    MAX_TIPS_PER_RECIPE,
+    SITE_DIR,
+    TAG_ALIASES,
+    TAG_GROUPS,
+    TIP_LINKS,
+)
 from .consolidate import cache_file
 from .store import read_json
 
@@ -36,6 +44,7 @@ ICONS = {
     "back": '<path d="m15 18-6-6 6-6"/>',
     "book": '<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>',
     "list": '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+    "external": '<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
     "sliders": '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
 }
 
@@ -59,6 +68,18 @@ def slugify(title: str) -> str:
 
 def _one_line(text: str) -> str:
     return " ".join(text.split())
+
+
+# Course credits ("Cátedra de Arte Culinario, Hogar Empresa II del IFES...") the model files as notes.
+CREDIT_RE = re.compile(
+    r"c[aá]tedr|hogar empresa|\bIFES\b|margarita de s[aá]nchez|instituto femenino", re.IGNORECASE
+)
+
+
+def _strip_credits(note: str) -> str:
+    """Drops the sentences that only credit the course, keeping any real tip in the same note."""
+    sentences = re.split(r"(?<=\.)\s+", _one_line(note))
+    return " ".join(s for s in sentences if not CREDIT_RE.search(s))
 
 
 def _label_key(label: str) -> tuple[int, int]:
@@ -190,12 +211,30 @@ def _pager(prev, nxt, root: str, folder: str = "recetas") -> str:
     return f'<nav class="pager">{link(prev, "prev", "Anterior")}{link(nxt, "next", "Siguiente")}</nav>'
 
 
-def recipe_html(recipe: dict, pages: list[str], slug: str, prev_next: tuple) -> str:
+def _related_tips(tips: list[tuple[dict, str]]) -> str:
+    """Opens in a new tab so the recipe (and its ticked steps, saved anyway) stays where it was."""
+    if not tips:
+        return ""
+    cards = "".join(
+        f'<li><a href="../../consejos/{slug}/" target="_blank" rel="noopener">{icon("book")}'
+        f'<span><strong>{escape(tip["title"])}</strong><small>{_reading_minutes(tip)} min de lectura</small></span>'
+        f'{icon("external")}</a></li>'
+        for tip, slug in tips
+    )
+    return (
+        '<section class="related"><h2>Consejos para esta receta</h2>'
+        '<p class="hint">Se abren en otra pestaña; lo que marcaste aquí queda guardado.</p>'
+        f'<ul class="related-list">{cards}</ul></section>'
+    )
+
+
+def recipe_html(recipe: dict, pages: list[str], slug: str, prev_next: tuple, tips: list) -> str:
     root = "../../"
     notes = ""
-    if recipe["teacher_notes"]:
-        items = "".join(f"<li>{escape(_one_line(n))}</li>" for n in recipe["teacher_notes"])
-        notes = f'<aside class="sticky-note"><h2>Notas de la maestra</h2><ul>{items}</ul></aside>'
+    teacher_notes = [n for n in map(_strip_credits, recipe["teacher_notes"]) if n]
+    if teacher_notes:
+        items = "".join(f"<li>{escape(n)}</li>" for n in teacher_notes)
+        notes = f'<aside class="sticky-note"><h2>Notas</h2><ul>{items}</ul></aside>'
 
     groups = []
     for group in recipe["ingredient_groups"]:
@@ -236,6 +275,7 @@ def recipe_html(recipe: dict, pages: list[str], slug: str, prev_next: tuple) -> 
       <p class="hint">Toca un paso para marcarlo como hecho.</p>
       <ol class="steps">{steps}</ol>
       {extra_notes}
+      {_related_tips(tips)}
     </section>
   </div>
   <p class="provenance">{_pages_label(pages)}</p>
@@ -244,7 +284,17 @@ def recipe_html(recipe: dict, pages: list[str], slug: str, prev_next: tuple) -> 
     return _page(f"{recipe['title']} · Recetario", body, root)
 
 
-def tip_html(tip: dict, pages: list[str], prev_next: tuple) -> str:
+def _used_in(recipes: list[tuple[dict, str]], root: str) -> str:
+    if not recipes:
+        return ""
+    links = "".join(
+        f'<li><a href="{root}recetas/{slug}/"><small>{escape(r["category"])}</small>{escape(r["title"])}</a></li>'
+        for r, slug in recipes
+    )
+    return f'<section class="used-in"><h2>Recetas donde sirve</h2><ul>{links}</ul></section>'
+
+
+def tip_html(tip: dict, pages: list[str], prev_next: tuple, recipes: list) -> str:
     """Laid out like a recipe: facts under the title, a sticky contents card, numbered sections."""
     root = "../../"
     intro, sections = _tip_parts(tip)
@@ -277,6 +327,7 @@ def tip_html(tip: dict, pages: list[str], prev_next: tuple) -> str:
     <dl class="facts">{facts_html}</dl>
   </header>
   {content}
+  {_used_in(recipes, root)}
   <p class="provenance">{_pages_label(pages)}</p>
   {_pager(*prev_next, root, "consejos")}
 </main>"""
@@ -412,6 +463,34 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
+def _matches(text: str, words: list[str]) -> int:
+    return sum(bool(re.search(rf"\b{re.escape(w)}(?:e?s)?\b", text)) for w in words)
+
+
+def _link_tips(recipes: list, tips: list) -> dict[str, list]:
+    """Recipe slug -> the consejos worth reading for it, best match first (see TIP_LINKS)."""
+    rules = []
+    for key, rule in TIP_LINKS.items():
+        found = [(t, s) for t, s, _ in tips if normalize(key) in normalize(t["title"])]
+        if not found:
+            print(f"Aviso: TIP_LINKS['{key}'] no coincide con ningún consejo")
+        rules += [(tip, slug, rule) for tip, slug in found]
+
+    links = {}
+    for recipe, slug, _ in recipes:
+        title = normalize(recipe["title"])
+        body = normalize(" ".join([*recipe["steps"], *(i for g in recipe["ingredient_groups"] for i in g["items"])]))
+        scored = []
+        for n, (tip, tip_slug, rule) in enumerate(rules):
+            if recipe["category"] in rule.get("skip", []):
+                continue
+            score = 3 * _matches(title, rule.get("title", [])) + _matches(body, rule.get("body", []))
+            if score:
+                scored.append((-score, n, tip, tip_slug))
+        links[slug] = [(tip, tip_slug) for *_, tip, tip_slug in sorted(scored)[:MAX_TIPS_PER_RECIPE]]
+    return links
+
+
 def _apply_fix(item: dict, fix: dict) -> dict:
     return {**item, **{k: v for k, v in fix.items() if k in item}}
 
@@ -444,16 +523,19 @@ def run() -> None:
             return recipes[i][0]["title"], recipes[i][1]
         return None
 
+    tip_links = _link_tips(recipes, tips)
     for i, (recipe, slug, pages) in enumerate(recipes):
         pager = (neighbour(i - 1, recipe["category"]), neighbour(i + 1, recipe["category"]))
-        _write(SITE_DIR / "recetas" / slug / "index.html", recipe_html(recipe, pages, slug, pager))
+        _write(SITE_DIR / "recetas" / slug / "index.html", recipe_html(recipe, pages, slug, pager, tip_links[slug]))
     for i, (tip, slug, pages) in enumerate(tips):
         pager = tuple((tips[j][0]["title"], tips[j][1]) if 0 <= j < len(tips) else None for j in (i - 1, i + 1))
-        _write(SITE_DIR / "consejos" / slug / "index.html", tip_html(tip, pages, pager))
+        used_in = [(r, s) for r, s, _ in recipes if any(t_slug == slug for _, t_slug in tip_links[s])]
+        _write(SITE_DIR / "consejos" / slug / "index.html", tip_html(tip, pages, pager, used_in))
     _write(SITE_DIR / "index.html", index_html([(r, s) for r, s, _ in recipes], [(t, s) for t, s, _ in tips]))
     _write(SITE_DIR / ".nojekyll", "")
     _write(SITE_DIR / "robots.txt", "User-agent: *\nDisallow: /\n")
-    print(f"Sitio generado en {SITE_DIR}: {len(recipes)} recetas, {len(tips)} consejos")
+    linked = sum(bool(v) for v in tip_links.values())
+    print(f"Sitio generado en {SITE_DIR}: {len(recipes)} recetas, {len(tips)} consejos ({linked} recetas con consejos)")
 
 
 def serve(port: int = 8000) -> None:

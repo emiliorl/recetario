@@ -62,6 +62,44 @@ TAG_ALIASES = {
     "pescados y mariscos": "pescado y mariscos",
 }
 
+# Which consejos to suggest on which recipes. Key: words from the consejo's title.
+# "title": words looked for in the recipe title (whole words, plurals included).
+# "body": in its ingredients and steps, so only unambiguous words here: "glass" there is almost
+# always azúcar glass, "fondo" the bottom of the pan, "pasta" a dough.
+# "skip": categories never linked, e.g. dessert sauces are not the savory sauce technique.
+# A title match counts more than a body match; the best MAX_TIPS_PER_RECIPE are shown.
+SAVORY_ONLY = ["Postres y pasteles", "Bebidas"]
+TIP_LINKS = {
+    "usos del glass": {"title": ["glass", "decorado", "decorar"]},
+    "cartuchos": {"title": ["glass", "decorado", "decorar"], "body": ["cartucho", "manga pastelera"]},
+    "aperitivos": {"title": ["canape", "dip", "bola de queso", "rollito", "pate", "camembert", "tostada"]},
+    "sopas": {"title": ["sopa", "consome", "caldo"], "body": ["roux"]},
+    "familias de salsas": {"title": ["salsa", "mayonesa"], "body": ["bechamel", "holandesa"], "skip": SAVORY_ONLY},
+    "maridaje de salsas": {"title": ["salsa"], "skip": SAVORY_ONLY},
+    "salsas a base de roux": {"body": ["roux", "bechamel", "salsa blanca"], "skip": SAVORY_ONLY},
+    "huevos": {"title": ["huevo", "quiche", "omelette", "frijol", "lenteja", "garbanzo"]},
+    "pastas y arroz": {"title": ["arroz", "espagueti", "noquis", "lasana", "tallarin", "macarron", "canelon"]},
+    "ensaladas": {"title": ["ensalada", "aderezo", "vinagreta"], "body": ["vinagreta"]},
+    "verduras": {"title": ["souffle", "verdura", "coliflor", "esparrago", "zucchini", "brocoli", "papa", "pure"]},
+    "asar": {
+        "title": ["pescado", "robalo", "atun", "corvina", "camaron", "filete", "barbacoa", "a la parrilla"],
+        "body": ["parrilla", "a la plancha"],
+    },
+    "tabla de asados": {"title": ["roast beef", "asado", "pavo", "pierna", "lomo", "lomito", "jamon virginia"]},
+    "cortes de carne": {
+        "title": ["roast beef", "lomo", "lomito", "medallon", "carne", "costilla", "solomillo", "punta de"],
+        "skip": SAVORY_ONLY,
+    },
+    "estofar": {"title": ["pollo", "pechuga", "pavo", "alita", "estofado", "guiso"], "body": ["estofar"]},
+    # Not a bare "relleno": "Relleno de cocoa" is a cake filling.
+    "saltear": {
+        "title": ["rellenos", "rellena", "con relleno", "relleno tradicional", "salteado"],
+        "body": ["saltear"],
+        "skip": SAVORY_ONLY,
+    },
+}
+MAX_TIPS_PER_RECIPE = 3
+
 # How the home page groups tags in the filter panel. Tags not listed go under "Otras".
 TAG_GROUPS = {
     "Ocasión": ["rápido", "fácil", "económico", "desayuno", "festivo", "congelable"],
