@@ -17,7 +17,7 @@ merge:
   - ["101#1", "136#1"]
   - ["102#1", "137#1"]
 
-# Items the title matcher merged but are different recipes.
+# Items cluster merged (same title, similar ingredients) that are different recipes.
 keep_apart: []
 #  - ["30", "31"]
 

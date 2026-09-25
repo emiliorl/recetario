@@ -10,7 +10,7 @@ pages = {}
 pages["page_216"] = {
     "page": "216",
     "file": "recetario _216.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -72,7 +72,7 @@ pages["page_216"] = {
 pages["page_217"] = {
     "page": "217",
     "file": "recetario _217.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -151,7 +151,7 @@ pages["page_217"] = {
 pages["page_218"] = {
     "page": "218",
     "file": "recetario _218.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -238,7 +238,7 @@ pages["page_218"] = {
 pages["page_219"] = {
     "page": "219",
     "file": "recetario _219.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -301,7 +301,7 @@ pages["page_219"] = {
 pages["page_220"] = {
     "page": "220",
     "file": "recetario _220.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -346,7 +346,7 @@ pages["page_220"] = {
 pages["page_221"] = {
     "page": "221",
     "file": "recetario _221.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -396,7 +396,7 @@ pages["page_221"] = {
 pages["page_222"] = {
     "page": "222",
     "file": "recetario _222.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -443,7 +443,7 @@ pages["page_222"] = {
 pages["page_223"] = {
     "page": "223",
     "file": "recetario _223.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -485,7 +485,7 @@ pages["page_223"] = {
 pages["page_224"] = {
     "page": "224",
     "file": "recetario _224.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -534,7 +534,7 @@ pages["page_224"] = {
 pages["page_226"] = {
     "page": "226",
     "file": "recetario _226.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -596,7 +596,7 @@ pages["page_226"] = {
 pages["page_226_1"] = {
     "page": "226-1",
     "file": "recetario _226_1.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -642,7 +642,7 @@ pages["page_226_1"] = {
 pages["page_227"] = {
     "page": "227",
     "file": "recetario _227.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -686,7 +686,7 @@ pages["page_227"] = {
 pages["page_228"] = {
     "page": "228",
     "file": "recetario _228.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -723,7 +723,7 @@ pages["page_228"] = {
 pages["page_229"] = {
     "page": "229",
     "file": "recetario _229.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -787,7 +787,7 @@ pages["page_229"] = {
 pages["page_230"] = {
     "page": "230",
     "file": "recetario _230.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -849,7 +849,7 @@ pages["page_230"] = {
 pages["page_231"] = {
     "page": "231",
     "file": "recetario _231.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -895,7 +895,7 @@ pages["page_231"] = {
 pages["page_232"] = {
     "page": "232",
     "file": "recetario _232.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -939,7 +939,7 @@ pages["page_232"] = {
 pages["page_233"] = {
     "page": "233",
     "file": "recetario _233.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -980,7 +980,7 @@ pages["page_233"] = {
 pages["page_234"] = {
     "page": "234",
     "file": "recetario _234.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {
@@ -1052,7 +1052,7 @@ pages["page_234"] = {
 pages["page_235"] = {
     "page": "235",
     "file": "recetario _235.jpg",
-    "model": "claude-3-7-sonnet",
+    "model": "gemini-3.8-flash",
     "skip_reason": "",
     "items": [
         {

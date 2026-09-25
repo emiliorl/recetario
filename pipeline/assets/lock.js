@@ -51,7 +51,8 @@
       });
   }
 
-  function show(page) {
+  function show(page, rawKey) {
+    window.recetarioKey = rawKey; // app.js decrypts the scans with it
     document.title = page.title;
     document.body.className = page.cls;
     document.body.innerHTML = page.body;
@@ -92,7 +93,7 @@
         .then(function (raw) { rawKey = raw; return decrypt(raw); })
         .then(function (page) {
           if (remember.checked) storage("set", b64encode(rawKey));
-          show(page);
+          show(page, rawKey);
         })
         .catch(function () {
           error.hidden = false;
@@ -112,7 +113,8 @@
 
   var saved = storage("get");
   if (saved) {
-    decrypt(b64decode(saved)).then(show).catch(function () {
+    var savedKey = b64decode(saved);
+    decrypt(savedKey).then(function (page) { show(page, savedKey); }).catch(function () {
       storage("remove"); // password changed since this device last visited
       askPassword();
     });

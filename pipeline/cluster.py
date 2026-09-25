@@ -3,8 +3,11 @@
 A page can hold several recipes, so the unit is an item, referenced as "157#2"
 (second item on page 157). A bare page label like "157" means its first item.
 
-1. Chain continuation items onto the recipe that precedes them in the binder.
-2. Merge chains whose titles are near-identical (duplicate copies of a dish).
+1. Chain continuation items onto the recipe they continue: the one just before, or the last one
+   with the same title when other pages sit in between (page 53 continuing page 51).
+2. Merge chains that are copies of one dish: same title and the same ingredients and quantities.
+   A shared title alone isn't enough (two different "Pastel navideño"), and matching ingredients
+   under different titles only produce a suggestion in cache/review.md.
 3. Apply manual fixes from data/overrides.yaml.
 """
 
@@ -15,9 +18,10 @@ from itertools import combinations
 import yaml
 from rapidfuzz import fuzz
 
-from .config import AUTO_MERGE_SCORE, CLUSTERS_FILE, OVERRIDES_FILE, REVIEW_MERGE_SCORE
+from .config import CLUSTERS_FILE, DIFFERENT_INGREDIENTS, OVERRIDES_FILE, SAME_INGREDIENTS, TITLE_MATCH_SCORE
 from .extract import cache_path
 from .pages import list_pages
+from .source import Source, shared_ingredients
 from .store import read_json, write_json, write_review_section
 
 
@@ -66,10 +70,17 @@ def _chain(pages: list[dict], overrides: dict, log: list[str]) -> list[dict]:
             same_title = last is not None and (not title or title == last["title"])
             if last and continues and same_title and item_ref not in split:
                 last["refs"].append(item_ref)
+                last["items"].append(item)
                 continue
             if continues and item_ref not in split:
+                earlier = next((c for c in reversed(chains) if title and c["title"] == title and c["kind"] == kind), None)
+                if earlier:
+                    earlier["refs"].append(item_ref)
+                    earlier["items"].append(item)
+                    log.append(f"- {item_ref}: continúa {earlier['refs'][0]} (con otras páginas en medio)")
+                    continue
                 log.append(f"- {item_ref}: continuación sin receta previa; queda como fragmento")
-            chains.append({"title": title, "display": item["title"], "kind": kind, "refs": [item_ref]})
+            chains.append({"title": title, "display": item["title"], "kind": kind, "refs": [item_ref], "items": [item]})
         previous_continues = data.get("continues_next", False)
     return chains
 
@@ -86,24 +97,47 @@ def _merge(chains: list[dict], overrides: dict, log: list[str]) -> list[list[dic
     ref_to_chain = {r: i for i, c in enumerate(chains) for r in c["refs"]}
     apart = {frozenset(ref_to_chain.get(ref(r)) for r in pair) for pair in overrides.get("keep_apart") or []}
 
+    undecided: list[tuple[int, int, str]] = []  # reported unless overrides.yaml merges them anyway
+    sources = []
+    for chain in chains:
+        source = Source()
+        for item in chain["items"]:
+            source.add(item)
+        sources.append(source)
+
     for i, j in combinations(range(len(chains)), 2):
         a, b = chains[i], chains[j]
         if not a["title"] or not b["title"] or a["kind"] != b["kind"] or frozenset((i, j)) in apart:
             continue
-        score = fuzz.ratio(a["title"], b["title"])
-        if score >= AUTO_MERGE_SCORE:
+        same_title = fuzz.ratio(a["title"], b["title"]) >= TITLE_MATCH_SCORE
+        shared = shared_ingredients(sources[i], sources[j])
+        pair = f"{a['refs'][0]} {a['display']!r} / {b['refs'][0]} {b['display']!r}"
+        merge_hint = f'si son la misma, añade `- ["{a["refs"][0]}", "{b["refs"][0]}"]` a merge en overrides.yaml'
+        if shared is None:
+            # Tips and fragments have no ingredient list to compare; the title decides.
+            if same_title:
+                parent[find(j)] = find(i)
+                log.append(f"- unidas: {pair} (mismo título, sin ingredientes que comparar)")
+        elif same_title and shared >= SAME_INGREDIENTS:
             parent[find(j)] = find(i)
-            log.append(f"- unidas: {a['refs'][0]} {a['display']!r} + {b['refs'][0]} {b['display']!r} ({score:.0f})")
-        elif fuzz.token_set_ratio(a["title"], b["title"]) >= REVIEW_MERGE_SCORE:
+            log.append(f"- unidas: {pair} (mismo título, {shared:.0%} de ingredientes iguales)")
+        elif same_title and shared >= DIFFERENT_INGREDIENTS:
+            # Usually one copy written differently (a sauce folded into one line); worth a look.
+            parent[find(j)] = find(i)
             log.append(
-                f"- ¿misma receta? {a['refs'][0]} {a['display']!r} / {b['refs'][0]} {b['display']!r}"
-                f' → si sí, añade `- ["{a["refs"][0]}", "{b["refs"][0]}"]` a merge en overrides.yaml'
+                f"- ¿bien unidas? {pair}: mismo título, solo {shared:.0%} de ingredientes iguales"
+                f' → si son distintas, añade `- ["{a["refs"][0]}", "{b["refs"][0]}"]` a keep_apart en overrides.yaml'
             )
+        elif same_title:
+            undecided.append((i, j, f"- separadas: {pair}: mismo título pero recetas distintas ({shared:.0%} de ingredientes iguales) → {merge_hint}"))
+        elif shared >= SAME_INGREDIENTS:
+            undecided.append((i, j, f"- ¿misma receta con otro título? {pair}: {shared:.0%} de ingredientes iguales → {merge_hint}"))
 
     for group in overrides.get("merge") or []:
         ids = [ref_to_chain[ref(r)] for r in group if ref(r) in ref_to_chain]
         for other in ids[1:]:
             parent[find(other)] = find(ids[0])
+    log += [text for i, j, text in undecided if find(i) != find(j)]
 
     groups: dict[int, list[dict]] = {}
     for i, c in enumerate(chains):

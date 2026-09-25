@@ -12,17 +12,24 @@ REVIEW_FILE = CACHE_DIR / "review.md"
 OVERRIDES_FILE = ROOT / "data" / "overrides.yaml"
 SITE_DIR = ROOT / "site"
 VAULT_DIR = ROOT / "vault"  # encrypted copy of cache/, the only form committed to Git
+SCANS_DIR = ROOT / "scans"  # encrypted, shrunk copies of the scans for the site, committed to Git
 
 # Pass 1 (vision) and pass 2 (text-only consolidation).
-EXTRACT_MODEL = "claude-opus-5"
-CONSOLIDATE_MODEL = "claude-haiku-4-5"
+EXTRACT_MODEL = "gemini-3.6-flash"
+CONSOLIDATE_MODEL = "gemini-3.6-flash"
 EXTRACT_WORKERS = 4
 CONSOLIDATE_WORKERS = 4
 IMAGE_MAX_EDGE = 1568
 
-# Title similarity (rapidfuzz token_set_ratio, 0-100).
-AUTO_MERGE_SCORE = 92
-REVIEW_MERGE_SCORE = 80
+# Scans shown on the site next to each recipe: big enough to read handwriting on a phone, ~100 KB each.
+SCAN_MAX_EDGE = 1600
+SCAN_QUALITY = 70
+
+# Same recipe? Titles alone mislead ("Pastel navideño" names two different cakes; "Pie de queso" shares
+# a word with every cheese recipe), so copies are matched on their ingredients and quantities.
+TITLE_MATCH_SCORE = 92  # rapidfuzz ratio (0-100) for "same title"
+SAME_INGREDIENTS = 0.6  # share of ingredient lines with the same name and quantity: same recipe
+DIFFERENT_INGREDIENTS = 0.35  # below this, a same-title pair is two different recipes
 
 # Folder slug -> display name. Order is the sidebar order.
 CATEGORIES = {

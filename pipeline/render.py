@@ -18,12 +18,14 @@ from .config import (
     CATEGORIES,
     CLUSTERS_FILE,
     MAX_TIPS_PER_RECIPE,
+    SCANS_DIR,
     SITE_DIR,
     TAG_ALIASES,
     TAG_GROUPS,
     TIP_LINKS,
 )
 from .consolidate import cache_file
+from .scans import scan_name
 from .store import read_json
 
 ASSETS_DIR = Path(__file__).parent / "assets"
@@ -101,6 +103,27 @@ def _page_range(pages: list[str]) -> str:
 
 def _pages_label(pages: list[str]) -> str:
     return f"Del cuaderno · {'página' if len(pages) == 1 else 'páginas'} {_page_range(pages)}"
+
+
+def _sources(pages: list[str], root: str) -> str:
+    """The page numbers, opening onto the scans themselves so anyone can check the recipe against them.
+
+    app.js fetches and decrypts the images only when this is opened.
+    """
+    label = f'<p class="provenance">{_pages_label(pages)}</p>'
+    figures = "".join(
+        f'<figure><a class="scan" target="_blank" data-src="{root}scans/{scan_name(page)}">'
+        f'<img alt="Página {page} del cuaderno" hidden></a><figcaption>Página {page}</figcaption></figure>'
+        for page in sorted(set(pages), key=_label_key)
+        if (SCANS_DIR / scan_name(page)).exists()
+    )
+    if not figures:
+        return label
+    return (
+        f'<details class="sources"><summary>{label}<span class="sources-open">Ver el original</span></summary>'
+        '<p class="hint">Compara con la página escrita si algo no cuadra. Toca una página para verla en grande.</p>'
+        f'<div class="scans">{figures}</div></details>'
+    )
 
 
 def _step_html(step: str) -> str:
@@ -278,7 +301,7 @@ def recipe_html(recipe: dict, pages: list[str], slug: str, prev_next: tuple, tip
       {_related_tips(tips)}
     </section>
   </div>
-  <p class="provenance">{_pages_label(pages)}</p>
+  {_sources(pages, root)}
   {_pager(*prev_next, root)}
 </main>"""
     return _page(f"{recipe['title']} · Recetario", body, root)
@@ -328,7 +351,7 @@ def tip_html(tip: dict, pages: list[str], prev_next: tuple, recipes: list) -> st
   </header>
   {content}
   {_used_in(recipes, root)}
-  <p class="provenance">{_pages_label(pages)}</p>
+  {_sources(pages, root)}
   {_pager(*prev_next, root, "consejos")}
 </main>"""
     return _page(f"{tip['title']} · Recetario", body, root)
@@ -517,6 +540,8 @@ def run() -> None:
 
     shutil.rmtree(SITE_DIR, ignore_errors=True)
     shutil.copytree(ASSETS_DIR, SITE_DIR / "assets")
+    if SCANS_DIR.exists():
+        shutil.copytree(SCANS_DIR, SITE_DIR / "scans")
 
     def neighbour(i, category):
         if 0 <= i < len(recipes) and recipes[i][0]["category"] == category:

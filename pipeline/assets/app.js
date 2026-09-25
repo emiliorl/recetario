@@ -1,4 +1,5 @@
 // Home: search, category and tag filters (kept in the URL). Recipe: saved checkboxes, tappable steps, keep-screen-on.
+// Recipes and consejos: the original scans, decrypted on demand.
 (function () {
   "use strict";
 
@@ -251,6 +252,42 @@
     });
   }
 
+  // Scans are encrypted like the pages (pipeline/scans.py); fetched only once "Ver el original" is opened.
+  function initSources(details) {
+    var loaded = false;
+    details.addEventListener("toggle", function () {
+      if (!details.open || loaded || !window.recetarioKey) return;
+      loaded = true;
+      var key = crypto.subtle.importKey("raw", window.recetarioKey, "AES-GCM", false, ["decrypt"]);
+      details.querySelectorAll(".scan").forEach(function (link) {
+        var figure = link.parentNode;
+        figure.classList.add("loading");
+        fetch(link.dataset.src)
+          .then(function (response) {
+            if (!response.ok) throw new Error(response.status);
+            return Promise.all([key, response.arrayBuffer()]);
+          })
+          .then(function (parts) {
+            var blob = new Uint8Array(parts[1]);
+            return crypto.subtle.decrypt({ name: "AES-GCM", iv: blob.slice(0, 12) }, parts[0], blob.slice(12));
+          })
+          .then(function (plain) {
+            var url = URL.createObjectURL(new Blob([plain], { type: "image/jpeg" }));
+            var img = link.querySelector("img");
+            img.src = url;
+            img.hidden = false;
+            link.href = url;
+          })
+          .catch(function () {
+            figure.classList.add("failed");
+            figure.querySelector("figcaption").textContent += " · no se pudo cargar";
+            loaded = false; // try again next time it is opened
+          })
+          .then(function () { figure.classList.remove("loading"); });
+      });
+    });
+  }
+
   var lockOut = document.querySelector(".lock-out");
   if (lockOut) {
     lockOut.addEventListener("click", function () {
@@ -266,4 +303,5 @@
   if (document.body.classList.contains("home")) initHome();
   var recipe = document.querySelector("main.recipe");
   if (recipe) initRecipe(recipe);
+  document.querySelectorAll("details.sources").forEach(initSources);
 })();
