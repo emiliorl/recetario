@@ -19,11 +19,14 @@ python -m pipeline extract --pages 9-12   # 2. vision pass on a few pages first;
 python -m pipeline extract                # 2. all remaining pages (cached pages are skipped)
 python -m pipeline cluster                # 3. group continuations and duplicates (no API calls)
 python -m pipeline consolidate            # 4. merge each group into one recipe + category/tags
-python -m pipeline render                 # 5. build the site into site/
+python -m pipeline verify                 # 5. check every recipe against its pages (no API calls)
+python -m pipeline render                 # 6. build the site into site/
 python -m pipeline serve                  # preview at http://localhost:8000 (also reachable from a phone on the same Wi-Fi)
 ```
 
-`python -m pipeline all` runs steps 2–5. Things to check by hand go to `cache/review.md`. You fix them in `data/overrides.yaml` (merge/split recipes, drop pages, correct a category), then re-run `cluster`, `consolidate` and `render`. Only recipes whose source pages changed call the API again.
+`python -m pipeline all` runs steps 2–6. Things to check by hand go to `cache/review.md`. You fix them in `data/overrides.yaml` (merge/split recipes, drop pages, correct a category), then re-run `cluster`, `consolidate` and `render`. Only recipes whose source pages changed call the API again.
+
+`verify` catches consolidated recipes that drifted from the scans. It flags ingredients, quantities, oven temperatures, times and servings that aren't on the page, and page ingredients the recipe dropped (❌). It also flags steps and notes built mostly from words the page doesn't use (⚠️, often just rewording). It exits with an error while any ❌ remain. Fix the recipe in `cache/recipes/` or re-consolidate it. If the scan shows it's right, add its id to `verified:` in `data/overrides.yaml`.
 
 All model calls live in `pipeline/llm.py`. Models are set in `pipeline/config.py`, and so are the categories and tags. The site's HTML is generated in `pipeline/render.py`, and the look comes from `pipeline/assets/` (`style.css`, `app.js`).
 

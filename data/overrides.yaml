@@ -33,6 +33,10 @@ drop: []
 kind: {}
 #  "45": tip
 
+# Recipes checked by hand against the scan: `python -m pipeline verify` stops reporting them.
+verified: []
+#  - "7#1"
+
 # Correct a consolidated recipe, keyed by its id (first ref, as in cache/clusters.json).
 # Render-only, no API call.
 fix: {}
