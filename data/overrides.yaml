@@ -34,7 +34,31 @@ kind: {}
 #  "45": tip
 
 # Recipes checked by hand against the scan: `python -m pipeline verify` stops reporting them.
-verified: []
+verified:
+  # Verify's typed-recipe parser treats everything between "INGREDIENTES:" and
+  # "PROCEDIMIENTO:" as an ingredient line; on this page that range also has the
+  # assembly instructions ("Se une la gel. ... con ...", "Se decora con ..."),
+  # which the recipe correctly keeps as steps instead of ingredients (checked
+  # against pictures/recetario _200.jpg).
+  - "200#1"
+  # Audit 2026-09: agent notes cite page numbers / uncertain digits, and sub-headings
+  # ("Aliño:", "Para decorar:") are read by verify as ingredients; checked against the scans.
+  - "71#1"
+  - "77#1"
+  - "79#1"
+  - "80#1"
+  - "90#1"
+  - "92#1"
+  - "111#1"
+  - "257#1"
+  - "259#1"
+  - "278#1"
+  - "279#1"
+  - "281#1"
+  - "282#2"
+  - "284#1"
+  - "286#1"
+  - "287#1"
 #  - "7#1"
 
 # Correct a consolidated recipe, keyed by its id (first ref, as in cache/clusters.json).
