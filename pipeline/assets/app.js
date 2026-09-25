@@ -259,8 +259,9 @@
       if (!details.open || loaded || !window.recetarioKey) return;
       loaded = true;
       var key = crypto.subtle.importKey("raw", window.recetarioKey, "AES-GCM", false, ["decrypt"]);
-      details.querySelectorAll(".scan").forEach(function (link) {
+      details.querySelectorAll(".scan:not([href])").forEach(function (link) {
         var figure = link.parentNode;
+        figure.classList.remove("failed");
         figure.classList.add("loading");
         fetch(link.dataset.src)
           .then(function (response) {
@@ -280,7 +281,6 @@
           })
           .catch(function () {
             figure.classList.add("failed");
-            figure.querySelector("figcaption").textContent += " · no se pudo cargar";
             loaded = false; // try again next time it is opened
           })
           .then(function () { figure.classList.remove("loading"); });

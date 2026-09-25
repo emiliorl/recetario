@@ -983,6 +983,101 @@ button {
   background: var(--line);
 }
 
+/* The original scans, under the page numbers. */
+.sources {
+  margin-top: 56px;
+}
+
+.sources summary {
+  list-style: none;
+  cursor: pointer;
+  text-align: center;
+}
+
+.sources summary::-webkit-details-marker {
+  display: none;
+}
+
+.sources .provenance {
+  margin: 0;
+}
+
+.sources-open {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--accent);
+  font-size: 0.95rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sources-open::after {
+  content: " ▾";
+}
+
+.sources[open] .sources-open::after {
+  content: " ▴";
+}
+
+.sources .hint {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.scans {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.scans figure {
+  margin: 0;
+}
+
+.scan {
+  display: block;
+  min-height: 200px;
+  background: var(--card);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.scan img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.scans .loading .scan {
+  animation: scan-pulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes scan-pulse {
+  to {
+    opacity: 0.5;
+  }
+}
+
+.scans figcaption {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.scans .failed figcaption::after {
+  content: " · no se pudo cargar";
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scans .loading .scan {
+    animation: none;
+  }
+}
+
 .pager {
   display: grid;
   grid-template-columns: 1fr 1fr;
